@@ -1,0 +1,104 @@
+---
+title: "Capstone Week 2 Milestone"
+author: "José Manuel Peñas"
+date: "September 7th, 2018"
+output:
+      html_document:
+            toc: true
+            toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Overview
+
+# Data Management
+
+## Libraries 
+The following libraries will be used on the code chunks this document shows.
+```{r libraries,message=FALSE}
+library(ggplot2)
+library(NLP)
+library(wordcloud2)
+library(tm)
+library(RWeka)
+
+```
+
+
+## Getting the Data
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r getting, cache=TRUE}
+if(!file.exists("data/capstone.zip")){
+      download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip", "data/capstone.zip")
+      unzip("data/capstone.zip")
+}
+enUS.blogs <- readLines("data/en_US/en_US.blogs.txt", warn = FALSE, encoding = "UTF-8")
+enUS.news <- readLines("data/en_US/en_US.news.txt", warn = FALSE, encoding = "UTF-8")
+enUS.twitter <- readLines("data/en_US/en_US.twitter.txt", warn = FALSE, encoding = "UTF-8")
+```
+
+The summary of the data obtained is the following:
+```{r summary, cache=TRUE}
+fileList <- list(enUS.blogs, enUS.news, enUS.twitter)
+summary <- data.frame(
+      'EntryType' = c("Blogs", "News", "Twitter"))
+summary$Size <-  sapply(fileList, object.size)
+summary$Number_of_Lines <-  sapply(fileList, length)
+summary$TotalChars <- sapply(fileList, function(x) {
+      sum(nchar(x))
+})
+knitr::kable(summary)
+```
+
+## Sampling 
+Now, we create a sample of the 10 % of elements of every entry type and join them as this exercise does not need to know the origin of the sentence.
+```{r sample, cache=TRUE}
+enUs.blogs.sample <- sample(enUS.blogs,summary[1,3]*.1)
+enUs.twitter.sample <- sample(enUS.twitter,summary[3,3]*.1)
+enUs.news.sample <- sample(enUS.news,summary[2,3]*.1)
+enUs.sample <- c(enUs.blogs.sample,enUs.twitter.sample,enUs.news.sample)
+str(enUs.sample)
+```
+
+## Corpus & Cleaning 
+Now, the corpus is created based on the sample vector of sentences obtained previously.    
+Moreover we proceed to clean the corpus; removing capitals, stopwords, punctuations, numbers and white spaces that detract the possible prediction.
+```{r corpus, cache=TRUE, message=FALSE}
+enUS.corpus <- SimpleCorpus(VectorSource(enUs.sample))
+enUS.corpus <- tm_map(enUS.corpus, tolower)
+enUS.corpus <- tm_map(enUS.corpus, removeWords, stopwords("en"))
+enUS.corpus <- tm_map(enUS.corpus, removePunctuation)
+enUS.corpus <- tm_map(enUS.corpus, removeNumbers)
+enUS.corpus <- tm_map(enUS.corpus, stripWhitespace)
+enUS.corpus <- tm_map(enUS.corpus, PlainTextDocument)
+enUS.corpus
+```
+
+
+```{r profanity}
+download.file("https://www.freewebheaders.com/download/files/full-list-of-bad-words_csv-file_2018_07_30.zip", "data/enUSprofanity.zip")
+enUs.profanity <- read.csv2(unz("data/enUSprofanity.zip","full-list-of-bad-words_csv-file_2018_07_30.csv"), stringsAsFactors = F,header=F)
+tm_map(enUS.corpus, removeWords, enUs.profanity$V1)
+
+```
+
+
+## N-Grams 
+
+# Exploratory Analysis
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Conclussions & Next steps
