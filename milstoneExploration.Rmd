@@ -1,3 +1,209 @@
+<<<<<<< HEAD
+---
+title: "Capstone Week 2 Milestone"
+author: "José Manuel Peñas"
+date: "September 7th, 2018"
+output:
+      html_document:
+            toc: true
+            toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Overview
+
+# Data Management
+
+## Libraries 
+The following libraries will be used on the code chunks this document shows.
+```{r libraries,message=FALSE}
+library(NLP)
+library(wordcloud)
+library(tm)
+library(RColorBrewer)
+library(ngram)
+library(stringr)
+```
+
+
+## Getting the Data
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r getting, cache=TRUE}
+if(!file.exists("data/capstone.zip")){
+      download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip", "data/capstone.zip")
+      unzip("data/capstone.zip")
+}
+enUS.blogs <- readLines("data/en_US/en_US.blogs.txt", warn = FALSE, encoding = "UTF-8")
+enUS.news <- readLines("data/en_US/en_US.news.txt", warn = FALSE, encoding = "UTF-8")
+enUS.twitter <- readLines("data/en_US/en_US.twitter.txt", warn = FALSE, encoding = "UTF-8")
+```
+
+The summary of the data obtained is the following:
+```{r summary, cache=TRUE}
+fileList <- list(enUS.blogs, enUS.news, enUS.twitter)
+summary <- data.frame(
+      'EntryType' = c("Blogs", "News", "Twitter"))
+summary$Size <-  sapply(fileList, object.size)
+summary$Number_of_Lines <-  sapply(fileList, length)
+summary$TotalChars <- sapply(fileList, function(x) {
+      sum(nchar(x))
+})
+knitr::kable(summary)
+```
+
+## Sampling 
+Now, we create a sample of the 10 % of elements of every entry type and join them as this exercise does not need to know the origin of the sentence.
+```{r sample, cache=TRUE, warning=FALSE}
+set.seed(912574)
+enUs.blogs.sample <- sample(enUS.blogs,summary[1,3]*.05)
+enUs.twitter.sample <- sample(enUS.twitter,summary[3,3]*.05)
+enUs.news.sample <- sample(enUS.news,summary[2,3]*.05)
+# Removing objects to free memory
+rm(enUS.blogs)
+rm(enUS.news)
+rm(enUS.twitter)
+enUs.sample <- c(enUs.blogs.sample,enUs.twitter.sample,enUs.news.sample)
+rm(enUs.blogs.sample)
+rm(enUs.news.sample)
+rm(enUs.twitter.sample)
+str(enUs.sample)
+```
+
+## Corpus Creation & Cleaning 
+Now, the corpus is created based on the sample vector of sentences obtained previously.    
+Moreover we proceed to clean the corpus; removing capitals, stopwords, punctuations, numbers and white spaces that detract the possible prediction.
+```{r corpus, cache=TRUE, message=FALSE, warning=FALSE}
+# Before corpus creation, proceeding to remove line feeds and carriage returns
+enUs.sample <- str_replace_all(enUs.sample, "[\r\n]" , "")
+# Corpus Creation
+enUs.corpus <- Corpus(VectorSource(enUs.sample))
+# Cleaning chats that can distort the prediction
+enUs.corpus <- tm_map(enUs.corpus, removePunctuation, preserve_intra_word_contractions=T,preserve_intra_word_dashes=T) 
+enUs.corpus <- tm_map(enUs.corpus, stripWhitespace) 
+enUs.corpus <- tm_map(enUs.corpus, content_transformer(tolower)) 
+enUs.corpus <- tm_map(enUs.corpus, removeNumbers) 
+enUs.corpus <- tm_map(enUs.corpus, PlainTextDocument)
+enUs.corpus <-
+      tm_map(enUs.corpus, removeWords, stopwords("english"))
+# concatenate in one string
+enUS.joined <- concatenate (enUs.corpus)
+rm(enUs.corpus)
+# Preprocessing the string
+enUS.joined <- preprocess(enUS.joined, remove.punct = T, remove.numbers = T, fix.spacing = T )
+enUS.joined <- str_replace_all(enUS.joined, "[\r\n]" , " ")
+```
+
+
+
+## Tokenization & N-Grams 
+
+```{r ngrams, cache=TRUE, message=FALSE, warning=FALSE}
+# Creation of ngrams from 1 to 3 tokenizers
+one.gram <- ngram(enUS.joined, n = 1)
+two.gram <- ngram(enUS.joined, n = 2)
+three.gram <- ngram(enUS.joined, n = 3)
+rm(enUS.joined)
+# Getting and showing the frecuency table
+one.df <- get.phrasetable(one.gram)
+knitr::kable(head(one.df))
+two.df <- get.phrasetable(two.gram)
+knitr::kable(head(two.df))
+three.df <- get.phrasetable(three.gram)
+knitr::kable(head(three.df))
+# Removing objects no longer needed
+rm(one.gram)
+rm(two.gram)
+rm(three.gram)
+
+```
+
+
+
+
+# Exploratory Analysis
+
+You can also embed plots, for example:
+
+## 1-Grams
+
+```{r onegram, echo=TRUE, message=FALSE, warning=FALSE}
+
+# Getting only the 25 first more frequent terms
+one.df.graph <- one.df[1:25, 1:2]
+# Wordcloud graph
+wordcloud(
+      words = one.df.graph$ngrams,
+      freq = one.df.graph$freq,
+      min.freq = 1,
+      random.order = FALSE,
+      rot.per = 0.35,
+      colors = brewer.pal(8, "Dark2"),
+      scale = c(3, .1)
+)
+# Barplot
+barplot(
+      one.df.graph$freq,
+      names.arg = one.df.graph$ngrams,
+      las = 2,
+      cex.names = 0.8
+)
+
+```
+
+## 2-Grams
+
+```{r twograms, echo=TRUE, message=FALSE, warning=FALSE}
+# Bigrams
+two.df.graph <- two.df[1:25, 1:2]
+wordcloud(
+      words = two.df.graph$ngrams,
+      freq = two.df.graph$freq,
+      random.order = FALSE,
+      rot.per = 0.35,
+      colors = brewer.pal(8, "Dark2"),
+      scale = c(3, 0.1)
+)
+
+barplot(
+      two.df.graph$freq,
+      names.arg = two.df.graph$ngrams,
+      las = 2,
+      cex.names = 0.7
+)
+```
+
+## 3-grams
+
+```{r threegrams, echo=TRUE, message=FALSE, warning=FALSE}
+# Trigrams
+three.df.graph <- three.df[1:25, 1:2]
+wordcloud(
+      words = three.df.graph$ngrams,
+      freq = three.df.graph$freq,
+      random.order = FALSE,
+      rot.per = 0.35,
+      colors = brewer.pal(8, "Dark2"),
+      scale = c(3, 0.1)
+)
+ 
+barplot(
+      three.df.graph$freq,
+      names.arg = three.df.graph$ngrams,
+      las = 2,
+      cex.names = 0.5
+)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Conclussions & Next steps
+=======
 ---
 title: "Capstone Week 2 Milestone"
 author: "José Manuel Peñas"
@@ -102,3 +308,4 @@ plot(pressure)
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 # Conclussions & Next steps
+>>>>>>> 09248d7d537961a4823be1c418a85f63ae6d61d6
