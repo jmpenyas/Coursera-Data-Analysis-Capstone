@@ -1,0 +1,202 @@
+---
+title: "Capstone Week 2 Milestone"
+author: "José Manuel Peñas"
+date: "September 7th, 2018"
+output:
+      html_document:
+            toc: true
+            toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Overview
+
+# Data Management
+
+## Libraries 
+The following libraries will be used on the code chunks this document shows.
+```{r libraries,message=FALSE}
+library(wordcloud)
+library(tm)
+library(RColorBrewer)
+library(ngram)
+library(stringr)
+```
+
+
+## Getting the Data
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r getting, cache=TRUE}
+if(!file.exists("data/capstone.zip")){
+      download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip", "data/capstone.zip")
+      unzip("data/capstone.zip")
+}
+enUS.blogs <- readLines("final/en_US/en_US.blogs.txt", warn = FALSE, encoding = "UTF-8")
+enUS.news <- readLines("final/en_US/en_US.news.txt", warn = FALSE, encoding = "UTF-8")
+enUS.twitter <- readLines("final/en_US/en_US.twitter.txt", warn = FALSE, encoding = "UTF-8")
+```
+
+
+## Sampling 
+Now, we create a sample of the 10 % of elements of every entry type and join them as this exercise does not need to know the origin of the sentence.
+```{r sample, cache=TRUE, warning=FALSE}
+set.seed(912574)
+enUs.blogs.sample <- sample(enUS.blogs,length(enUS.blogs)*.05)
+enUs.twitter.sample <- sample(enUS.twitter,length(enUS.twitter)*.05)
+enUs.news.sample <- sample(enUS.news,length(enUS.news)*.05)
+# Removing objects to free memory
+rm(enUS.blogs)
+rm(enUS.news)
+rm(enUS.twitter)
+enUs.sample <- c(enUs.blogs.sample,enUs.twitter.sample,enUs.news.sample)
+rm(enUs.blogs.sample)
+rm(enUs.news.sample)
+rm(enUs.twitter.sample)
+str(enUs.sample)
+```
+
+## Corpus Creation & Cleaning 
+Now, the corpus is created based on the sample vector of sentences obtained previously.    
+Moreover we proceed to clean the corpus; removing capitals, stopwords, punctuations, numbers and white spaces that detract the possible prediction.
+```{r clean, cache=TRUE, message=FALSE, warning=FALSE}
+# Before corpus creation, proceeding to remove line feeds and carriage returns
+enUs.sample <- str_replace_all(enUs.sample, "[\r\n]" , "")
+enUs.sample <-str_replace_all(enUs.sample," www(.+) ", " " )
+
+# Corpus Creation
+enUs.corpus <- Corpus(VectorSource(enUs.sample))
+# Cleaning chats that can distort the prediction
+enUs.corpus <- tm_map(enUs.corpus, removePunctuation, preserve_intra_word_contractions=T,preserve_intra_word_dashes=T) 
+enUs.corpus <- tm_map(enUs.corpus, stripWhitespace) 
+enUs.corpus <- tm_map(enUs.corpus, content_transformer(tolower)) 
+enUs.corpus <- tm_map(enUs.corpus, removeNumbers) 
+enUs.corpus <- tm_map(enUs.corpus, PlainTextDocument)
+enUs.corpus <-
+      tm_map(enUs.corpus, removeWords, stopwords("english"))
+# concatenate in one string
+enUS.joined <- concatenate (enUs.corpus)
+rm(enUs.corpus)
+# Preprocessing the string
+enUS.corpus.joined <- preprocess(enUS.joined, remove.punct = T, remove.numbers = T, fix.spacing = T )
+enUS.corpus.joined <- str_replace_all(enUS.corpus.joined, "[\r\n]" , " ")
+```
+
+
+
+## Tokenization & N-Grams 
+
+```{r ngrams, cache=TRUE, message=FALSE, warning=FALSE}
+rm(enUs.sample)
+bigrams <- ngram(enUS.corpus.joined, 2)
+trigrams <- ngram(enUS.corpus.joined, 3)
+tetragrams <- ngram(enUS.corpus.joined, 4)
+pentagrams <- ngram(enUS.corpus.joined, 5)
+
+getWord <- function(x, n) {
+        unlist(strsplit(x, " "))[n]
+}
+
+bigrams.df <- get.phrasetable(bigrams)
+bigrams.df$word1 <- sapply(bigrams.df$ngrams, getWord, 1)
+bigrams.df$word2 <- sapply(bigrams.df$ngrams, getWord, 2)
+trigrams.df <- get.phrasetable(trigrams)
+trigrams.df$word1 <- sapply(trigrams.df$ngrams, getWord, 1)
+trigrams.df$word2 <- sapply(trigrams.df$ngrams, getWord, 2)
+trigrams.df$word3 <- sapply(trigrams.df$ngrams, getWord, 3)
+tetragrams.df <- get.phrasetable(tetragrams)
+tetragrams.df$word1 <- sapply(tetragrams.df$ngrams, getWord, 1)
+tetragrams.df$word2 <- sapply(tetragrams.df$ngrams, getWord, 2)
+tetragrams.df$word3 <- sapply(tetragrams.df$ngrams, getWord, 3)
+tetragrams.df$word4 <- sapply(tetragrams.df$ngrams, getWord, 4)
+pentagrams.df <- get.phrasetable(pentagrams)
+pentagrams.df$word1 <- sapply(pentagrams.df$ngrams, getWord, 1)
+pentagrams.df$word2 <- sapply(pentagrams.df$ngrams, getWord, 2)
+pentagrams.df$word3 <- sapply(pentagrams.df$ngrams, getWord, 3)
+pentagrams.df$word4 <- sapply(pentagrams.df$ngrams, getWord, 4)
+pentagrams.df$word5 <- sapply(pentagrams.df$ngrams, getWord, 5)
+rm(bigrams)
+rm(trigrams)
+rm(tetragrams)
+rm(pentagrams)
+rm(enUS.corpus.joined)
+```
+
+
+
+
+
+# Model construction
+
+```{r model}
+
+nextWord  <- function(input) {
+        inputSplit <- unlist(strsplit(input, " "))
+        inputSize <- length(inputSplit)
+        if (inputSize == 1) {
+                res <- head(subset(bigrams.df, word1 == inputSplit[1])$word2,
+                            3)
+                
+        }
+        else   if (inputSize == 2) {
+                res <- head(
+                        subset(
+                                trigrams.df,
+                                word1 == inputSplit[1] &&
+                                        word2 == inputSplit[2]
+                        )$word3,
+                        3
+                )
+                if (length(res) == 0) {
+                        res <- nextWord(inputSplit[-1])
+                }
+        }
+        else   if (inputSize == 3) {
+                res <- head(
+                        subset(
+                                tetragrams.df,
+                                word1 == inputSplit[1] &&
+                                        word2 == inputSplit[2] &&
+                                        word3 == inputSplit[3]
+                        )$word4,
+                        3
+                )
+                if (length(res) == 0) {
+                        res <- nextWord(inputSplit[-1])
+                }
+        }
+        else   if (inputSize == 4) {
+                res <- head(
+                        subset(
+                                pentagrams.df,
+                                word1 == inputSplit[1] &&
+                                        word2 == inputSplit[2] &&
+                                        word3 == inputSplit[3] &&
+                                        word4 == inputSplit[4]
+                        )$word5 ,
+                        3
+                )
+                if (length(res) == 0) {
+                        res <-
+                                nextWord(inputSplit[-1])
+                }
+        }
+        else {
+                res <-
+                        nextWord(inputSplit[-1])
+        }
+        
+        
+        res
+} 
+
+```
+
+
+
+
