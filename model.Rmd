@@ -47,9 +47,9 @@ enUS.twitter <- readLines("final/en_US/en_US.twitter.txt", warn = FALSE, encodin
 Now, we create a sample of the 10 % of elements of every entry type and join them as this exercise does not need to know the origin of the sentence.
 ```{r sample, cache=TRUE, warning=FALSE}
 set.seed(912574)
-enUs.blogs.sample <- sample(enUS.blogs,length(enUS.blogs)*.05)
-enUs.twitter.sample <- sample(enUS.twitter,length(enUS.twitter)*.05)
-enUs.news.sample <- sample(enUS.news,length(enUS.news)*.05)
+enUs.blogs.sample <- sample(enUS.blogs,length(enUS.blogs)*.1)
+enUs.twitter.sample <- sample(enUS.twitter,length(enUS.twitter)*.1)
+enUs.news.sample <- sample(enUS.news,length(enUS.news)*.1)
 # Removing objects to free memory
 rm(enUS.blogs)
 rm(enUS.news)
@@ -67,7 +67,10 @@ Moreover we proceed to clean the corpus; removing capitals, stopwords, punctuati
 ```{r clean, cache=TRUE, message=FALSE, warning=FALSE}
 # Before corpus creation, proceeding to remove line feeds and carriage returns
 enUs.sample <- str_replace_all(enUs.sample, "[\r\n]" , "")
-enUs.sample <-str_replace_all(enUs.sample," www(.+) ", " " )
+enUs.sample <- str_replace_all(enUs.sample, "[^[:alpha:][:space:]]*" , "")
+enUs.sample <- str_replace_all(enUs.sample, "http[^[:space:]]*" , "")
+enUs.sample <- str_replace_all(enUs.sample, "\\b(?=\\w*(\\w)\\1)\\w+\\b"  , "")
+enUs.sample <- iconv(enUs.sample, to = "ASCII",sub = "")
 
 # Corpus Creation
 enUs.corpus <- Corpus(VectorSource(enUs.sample))
@@ -134,10 +137,24 @@ rm(enUS.corpus.joined)
 # Model construction
 
 ```{r model}
+cleanInput <- function(input){
+        words <- tokens(x = tolower(input),
+                        remove_punct = T,
+                        remove_symbols = T, remove_separators = T,
+                        remove_twitter = T, remove_hyphens = T, remove_url = T)
+        long <- length(words$text1)
+        print(long)
+        if (long < 4)
+                res <- words$text1
+        else
+                res <- words$text1[(long -3):long]
+        res
+        }
 
 nextWord  <- function(input) {
-        inputSplit <- unlist(strsplit(input, " "))
-        inputSize <- length(inputSplit)
+        inputSplit <- cleanInput(input)
+
+        res <- ""
         if (inputSize == 1) {
                 res <- head(subset(bigrams.df, word1 == inputSplit[1])$word2,
                             3)
