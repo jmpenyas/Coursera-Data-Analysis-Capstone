@@ -65,13 +65,19 @@ str(enUs.sample)
 Now, the corpus is created based on the sample vector of sentences obtained previously.    
 Moreover we proceed to clean the corpus; removing capitals, stopwords, punctuations, numbers and white spaces that detract the possible prediction.
 ```{r clean, cache=TRUE, message=FALSE, warning=FALSE}
-# Before corpus creation, proceeding to remove line feeds and carriage returns
-enUs.sample <- str_replace_all(enUs.sample, "[\r\n]" , "")
-enUs.sample <- str_replace_all(enUs.sample, "[^[:alpha:][:space:]]*" , "")
-enUs.sample <- str_replace_all(enUs.sample, "http[^[:space:]]*" , "")
-enUs.sample <- str_replace_all(enUs.sample, "\\b(?=\\w*(\\w)\\1)\\w+\\b"  , "")
-enUs.sample <- iconv(enUs.sample, to = "ASCII",sub = "")
+# Function that cleans the text passed as parameter
+cleanText <- function (txt){
+ # Before corpus creation, proceeding to remove line feeds and carriage returns
+txt <- str_replace_all(txt, "[\r\n]" , "")
+txt <- str_replace_all(txt, "[^[:alpha:][:space:]]*" , "")
+txt <- str_replace_all(txt, "http[^[:space:]]*" , "")
+txt <- str_replace_all(txt, "\\b(?=\\w*(\\w)\\1)\\w+\\b"  , "")
+txt <- iconv(txt, to = "ASCII",sub = "")      
+txt <- removeWords(txt,stopwords("english"))
+txt <- stemDocument(txt)
+}
 
+enUs.sample <- cleanText(enUs.sample)
 # Corpus Creation
 enUs.corpus <- Corpus(VectorSource(enUs.sample))
 # Cleaning chats that can distort the prediction
@@ -82,6 +88,7 @@ enUs.corpus <- tm_map(enUs.corpus, removeNumbers)
 enUs.corpus <- tm_map(enUs.corpus, PlainTextDocument)
 enUs.corpus <-
       tm_map(enUs.corpus, removeWords, stopwords("english"))
+enUs.corpus <- tm_map(enUs.corpus, stemDocument, language = "english")
 # concatenate in one string
 enUS.joined <- concatenate (enUs.corpus)
 rm(enUs.corpus)
@@ -138,16 +145,18 @@ rm(enUS.corpus.joined)
 
 ```{r model}
 cleanInput <- function(input){
+        input <- cleanText(input)
         words <- tokens(x = tolower(input),
                         remove_punct = T,
                         remove_symbols = T, remove_separators = T,
-                        remove_twitter = T, remove_hyphens = T, remove_url = T)
+                        remove_twitter = T, remove_hyphens = T, remove_url = T, s)
         long <- length(words$text1)
         print(long)
         if (long < 4)
                 res <- words$text1
         else
                 res <- words$text1[(long -3):long]
+        res <- sapply(res,stemDocument)
         res
         }
 
