@@ -18,9 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Libraries 
 The following libraries will be used on the code chunks this document shows.
 ```{r libraries,message=FALSE}
-library(wordcloud)
 library(tm)
-library(RColorBrewer)
 library(ngram)
 library(stringr)
 ```
@@ -67,14 +65,14 @@ Moreover we proceed to clean the corpus; removing capitals, stopwords, punctuati
 ```{r clean, cache=TRUE, message=FALSE, warning=FALSE}
 # Function that cleans the text passed as parameter
 cleanText <- function (txt){
- # Before corpus creation, proceeding to remove line feeds and carriage returns
-txt <- str_replace_all(txt, "[\r\n]" , "")
-txt <- str_replace_all(txt, "[^[:alpha:][:space:]]*" , "")
-txt <- str_replace_all(txt, "http[^[:space:]]*" , "")
-txt <- str_replace_all(txt, "\\b(?=\\w*(\\w)\\1)\\w+\\b"  , "")
-txt <- iconv(txt, to = "ASCII",sub = "")      
-txt <- removeWords(txt,stopwords("english"))
-txt <- stemDocument(txt)
+        # Before corpus creation, proceeding to remove line feeds and carriage returns
+        txt <- str_replace_all(txt, "[\r\n]" , "")
+        txt <- str_replace_all(txt, "[^[:alpha:][:space:]]*" , "")
+        txt <- str_replace_all(txt, "http[^[:space:]]*" , "")
+        txt <- str_replace_all(txt, "\\b(?=\\w*(\\w)\\1)\\w+\\b"  , "")
+        txt <- iconv(txt, to = "ASCII",sub = "")      
+        txt <- removeWords(txt,stopwords("english"))
+        txt <- stemDocument(txt)
 }
 
 enUs.sample <- cleanText(enUs.sample)
@@ -87,7 +85,7 @@ enUs.corpus <- tm_map(enUs.corpus, content_transformer(tolower))
 enUs.corpus <- tm_map(enUs.corpus, removeNumbers) 
 enUs.corpus <- tm_map(enUs.corpus, PlainTextDocument)
 enUs.corpus <-
-      tm_map(enUs.corpus, removeWords, stopwords("english"))
+        tm_map(enUs.corpus, removeWords, stopwords("english"))
 enUs.corpus <- tm_map(enUs.corpus, stemDocument, language = "english")
 # concatenate in one string
 enUS.joined <- concatenate (enUs.corpus)
@@ -103,6 +101,7 @@ enUS.corpus.joined <- str_replace_all(enUS.corpus.joined, "[\r\n]" , " ")
 
 ```{r ngrams, cache=TRUE, message=FALSE, warning=FALSE}
 rm(enUs.sample)
+unigrams <- ngram(en.corpus.joined,1)
 bigrams <- ngram(enUS.corpus.joined, 2)
 trigrams <- ngram(enUS.corpus.joined, 3)
 tetragrams <- ngram(enUS.corpus.joined, 4)
@@ -111,8 +110,9 @@ pentagrams <- ngram(enUS.corpus.joined, 5)
 getWord <- function(x, n) {
         unlist(strsplit(x, " "))[n]
 }
-
+unigrams.df <- get.phrasetable(unigrams)
 bigrams.df <- get.phrasetable(bigrams)
+sca
 bigrams.df$word1 <- sapply(bigrams.df$ngrams, getWord, 1)
 bigrams.df$word2 <- sapply(bigrams.df$ngrams, getWord, 2)
 trigrams.df <- get.phrasetable(trigrams)
@@ -146,6 +146,7 @@ rm(enUS.corpus.joined)
 ```{r model}
 cleanInput <- function(input){
         input <- cleanText(input)
+        
         words <- tokens(x = tolower(input),
                         remove_punct = T,
                         remove_symbols = T, remove_separators = T,
@@ -158,11 +159,11 @@ cleanInput <- function(input){
                 res <- words$text1[(long -3):long]
         res <- sapply(res,stemDocument)
         res
-        }
+}
 
 nextWord  <- function(input) {
         inputSplit <- cleanInput(input)
-
+        
         res <- ""
         if (inputSize == 1) {
                 res <- head(subset(bigrams.df, word1 == inputSplit[1])$word2,
@@ -179,7 +180,7 @@ nextWord  <- function(input) {
                         3
                 )
                 if (length(res) == 0) {
-                        res <- nextWord(inputSplit[-1])
+                        res <- nextWord(paste(inputSplit[-1], collapse = " "))
                 }
         }
         else   if (inputSize == 3) {
@@ -193,7 +194,7 @@ nextWord  <- function(input) {
                         3
                 )
                 if (length(res) == 0) {
-                        res <- nextWord(inputSplit[-1])
+                        res <- nextWord(paste(inputSplit[-1], collapse = " "))
                 }
         }
         else   if (inputSize == 4) {
@@ -209,15 +210,13 @@ nextWord  <- function(input) {
                 )
                 if (length(res) == 0) {
                         res <-
-                                nextWord(inputSplit[-1])
+                                nextWord(paste(inputSplit[-1], collapse = " "))
                 }
         }
         else {
                 res <-
-                        nextWord(inputSplit[-1])
+                        nextWord(paste(inputSplit[-1], collapse = " "))
         }
-        
-        
         res
 } 
 
