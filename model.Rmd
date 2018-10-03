@@ -56,7 +56,6 @@ enUs.sample <- c(enUs.blogs.sample,enUs.twitter.sample,enUs.news.sample)
 rm(enUs.blogs.sample)
 rm(enUs.news.sample)
 rm(enUs.twitter.sample)
-str(enUs.sample)
 ```
 
 ## Corpus Creation & Cleaning 
@@ -72,7 +71,6 @@ cleanText <- function (txt){
         txt <- str_replace_all(txt, "\\b(?=\\w*(\\w)\\1)\\w+\\b"  , "")
         txt <- iconv(txt, to = "ASCII",sub = "")      
         txt <- removeWords(txt,stopwords("english"))
-        txt <- stemDocument(txt)
 }
 
 enUs.sample <- cleanText(enUs.sample)
@@ -86,13 +84,13 @@ enUs.corpus <- tm_map(enUs.corpus, removeNumbers)
 enUs.corpus <- tm_map(enUs.corpus, PlainTextDocument)
 enUs.corpus <-
         tm_map(enUs.corpus, removeWords, stopwords("english"))
-enUs.corpus <- tm_map(enUs.corpus, stemDocument, language = "english")
 # concatenate in one string
 enUS.joined <- concatenate (enUs.corpus)
 rm(enUs.corpus)
 # Preprocessing the string
 enUS.corpus.joined <- preprocess(enUS.joined, remove.punct = T, remove.numbers = T, fix.spacing = T )
 enUS.corpus.joined <- str_replace_all(enUS.corpus.joined, "[\r\n]" , " ")
+rm(enUS.joined)
 ```
 
 
@@ -101,39 +99,38 @@ enUS.corpus.joined <- str_replace_all(enUS.corpus.joined, "[\r\n]" , " ")
 
 ```{r ngrams, cache=TRUE, message=FALSE, warning=FALSE}
 rm(enUs.sample)
-unigrams <- ngram(en.corpus.joined,1)
+unigrams <- ngram(enUS.corpus.joined,1)
 bigrams <- ngram(enUS.corpus.joined, 2)
 trigrams <- ngram(enUS.corpus.joined, 3)
 tetragrams <- ngram(enUS.corpus.joined, 4)
-pentagrams <- ngram(enUS.corpus.joined, 5)
 
 getWord <- function(x, n) {
         unlist(strsplit(x, " "))[n]
 }
 unigrams.df <- get.phrasetable(unigrams)
 bigrams.df <- get.phrasetable(bigrams)
-sca
 bigrams.df$word1 <- sapply(bigrams.df$ngrams, getWord, 1)
+bigrams.df$word1 <- sapply(bigrams.df$word1,stemDocument)
 bigrams.df$word2 <- sapply(bigrams.df$ngrams, getWord, 2)
+
 trigrams.df <- get.phrasetable(trigrams)
 trigrams.df$word1 <- sapply(trigrams.df$ngrams, getWord, 1)
+trigrams.df$word1 <- sapply(trigrams.df$word1,stemDocument)
 trigrams.df$word2 <- sapply(trigrams.df$ngrams, getWord, 2)
+trigrams.df$word2 <- sapply(trigrams.df$word2,stemDocument)
 trigrams.df$word3 <- sapply(trigrams.df$ngrams, getWord, 3)
 tetragrams.df <- get.phrasetable(tetragrams)
 tetragrams.df$word1 <- sapply(tetragrams.df$ngrams, getWord, 1)
+tetragrams.df$word1 <- sapply(tetragrams.df$word1,stemDocument)
 tetragrams.df$word2 <- sapply(tetragrams.df$ngrams, getWord, 2)
+tetragrams.df$word2 <- sapply(tetragrams.df$word2,stemDocument)
 tetragrams.df$word3 <- sapply(tetragrams.df$ngrams, getWord, 3)
+tetragrams.df$word3 <- sapply(tetragrams.df$word3,stemDocument)
 tetragrams.df$word4 <- sapply(tetragrams.df$ngrams, getWord, 4)
-pentagrams.df <- get.phrasetable(pentagrams)
-pentagrams.df$word1 <- sapply(pentagrams.df$ngrams, getWord, 1)
-pentagrams.df$word2 <- sapply(pentagrams.df$ngrams, getWord, 2)
-pentagrams.df$word3 <- sapply(pentagrams.df$ngrams, getWord, 3)
-pentagrams.df$word4 <- sapply(pentagrams.df$ngrams, getWord, 4)
-pentagrams.df$word5 <- sapply(pentagrams.df$ngrams, getWord, 5)
+rm(unigrams)
 rm(bigrams)
 rm(trigrams)
 rm(tetragrams)
-rm(pentagrams)
 rm(enUS.corpus.joined)
 ```
 
