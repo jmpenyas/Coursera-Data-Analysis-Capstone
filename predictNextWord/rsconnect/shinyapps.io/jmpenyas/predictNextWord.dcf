@@ -1,0 +1,13 @@
+name: predictNextWord
+title: predictNextWord
+username:
+account: jmpenyas
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 499701
+bundleId: 1629407
+url: https://jmpenyas.shinyapps.io/predictNextWord/
+when: 1539001879.54206
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: bigram.RData|trigram.RData|unigram.RData

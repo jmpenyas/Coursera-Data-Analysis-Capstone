@@ -45,9 +45,9 @@ enUS.twitter <- readLines("final/en_US/en_US.twitter.txt", warn = FALSE, encodin
 Now, we create a sample of the 10 % of elements of every entry type and join them as this exercise does not need to know the origin of the sentence.
 ```{r sample, cache=TRUE, warning=FALSE}
 set.seed(912574)
-enUs.blogs.sample <- sample(enUS.blogs,length(enUS.blogs)*.1)
-enUs.twitter.sample <- sample(enUS.twitter,length(enUS.twitter)*.1)
-enUs.news.sample <- sample(enUS.news,length(enUS.news)*.1)
+enUs.blogs.sample <- sample(enUS.blogs,length(enUS.blogs)*.05)
+enUs.twitter.sample <- sample(enUS.twitter,length(enUS.twitter)*.05)
+enUs.news.sample <- sample(enUS.news,length(enUS.news)*.05)
 # Removing objects to free memory
 rm(enUS.blogs)
 rm(enUS.news)
@@ -102,7 +102,6 @@ rm(enUs.sample)
 unigrams <- ngram(enUS.corpus.joined,1)
 bigrams <- ngram(enUS.corpus.joined, 2)
 trigrams <- ngram(enUS.corpus.joined, 3)
-tetragrams <- ngram(enUS.corpus.joined, 4)
 
 getWord <- function(x, n) {
         unlist(strsplit(x, " "))[n]
@@ -112,26 +111,25 @@ bigrams.df <- get.phrasetable(bigrams)
 bigrams.df$word1 <- sapply(bigrams.df$ngrams, getWord, 1)
 bigrams.df$word1 <- sapply(bigrams.df$word1,stemDocument)
 bigrams.df$word2 <- sapply(bigrams.df$ngrams, getWord, 2)
-
 trigrams.df <- get.phrasetable(trigrams)
+trigrams.df <- subset(trigrams.df,freq > 1)
 trigrams.df$word1 <- sapply(trigrams.df$ngrams, getWord, 1)
 trigrams.df$word1 <- sapply(trigrams.df$word1,stemDocument)
 trigrams.df$word2 <- sapply(trigrams.df$ngrams, getWord, 2)
 trigrams.df$word2 <- sapply(trigrams.df$word2,stemDocument)
 trigrams.df$word3 <- sapply(trigrams.df$ngrams, getWord, 3)
-tetragrams.df <- get.phrasetable(tetragrams)
-tetragrams.df$word1 <- sapply(tetragrams.df$ngrams, getWord, 1)
-tetragrams.df$word1 <- sapply(tetragrams.df$word1,stemDocument)
-tetragrams.df$word2 <- sapply(tetragrams.df$ngrams, getWord, 2)
-tetragrams.df$word2 <- sapply(tetragrams.df$word2,stemDocument)
-tetragrams.df$word3 <- sapply(tetragrams.df$ngrams, getWord, 3)
-tetragrams.df$word3 <- sapply(tetragrams.df$word3,stemDocument)
-tetragrams.df$word4 <- sapply(tetragrams.df$ngrams, getWord, 4)
+
+save(unigrams.df, file = "oneGram.RData")
+save(bigrams.df, file = "biGram.RData")
+save(trigrams.df, file = "triGram.RData")
 rm(unigrams)
 rm(bigrams)
 rm(trigrams)
 rm(tetragrams)
 rm(enUS.corpus.joined)
+rm(unigrams.df)
+rm(bigrams.df)
+rm(trigrams.df)
 ```
 
 
@@ -147,18 +145,21 @@ cleanInput <- function(input){
         words <- tokens(x = tolower(input),
                         remove_punct = T,
                         remove_symbols = T, remove_separators = T,
-                        remove_twitter = T, remove_hyphens = T, remove_url = T, s)
+                        remove_twitter = T, remove_hyphens = T, remove_url = T)
         long <- length(words$text1)
         print(long)
-        if (long < 4)
+        if (long < 3)
                 res <- words$text1
         else
-                res <- words$text1[(long -3):long]
+                res <- words$text1[(long -2):long]
         res <- sapply(res,stemDocument)
         res
 }
 
 nextWord  <- function(input) {
+load("oneGram.RData") 
+load("biGram.RData")
+load("triGram.RData");         
         inputSplit <- cleanInput(input)
         
         res <- ""
@@ -192,22 +193,6 @@ nextWord  <- function(input) {
                 )
                 if (length(res) == 0) {
                         res <- nextWord(paste(inputSplit[-1], collapse = " "))
-                }
-        }
-        else   if (inputSize == 4) {
-                res <- head(
-                        subset(
-                                pentagrams.df,
-                                word1 == inputSplit[1] &&
-                                        word2 == inputSplit[2] &&
-                                        word3 == inputSplit[3] &&
-                                        word4 == inputSplit[4]
-                        )$word5 ,
-                        3
-                )
-                if (length(res) == 0) {
-                        res <-
-                                nextWord(paste(inputSplit[-1], collapse = " "))
                 }
         }
         else {
