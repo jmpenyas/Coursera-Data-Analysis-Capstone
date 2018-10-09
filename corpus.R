@@ -87,6 +87,7 @@ getWord <- function(x, n) {
 }
 unigrams.df <- get.phrasetable(unigrams)
 bigrams.df <- get.phrasetable(bigrams)
+bigrams.df <- subset(bigrams.df, freq > 1)
 bigrams.df$word1 <- sapply(bigrams.df$ngrams, getWord, 1)
 bigrams.df$word1 <- sapply(bigrams.df$word1, stemDocument)
 bigrams.df$word2 <- sapply(bigrams.df$ngrams, getWord, 2)

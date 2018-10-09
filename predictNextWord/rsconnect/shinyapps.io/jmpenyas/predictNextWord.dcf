@@ -5,9 +5,8 @@ account: jmpenyas
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 499701
-bundleId: 1629407
+bundleId: 1631343
 url: https://jmpenyas.shinyapps.io/predictNextWord/
-when: 1539001879.54206
+when: 1539081550.22131
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: bigram.RData|trigram.RData|unigram.RData

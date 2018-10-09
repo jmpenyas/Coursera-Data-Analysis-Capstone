@@ -39,7 +39,7 @@ nextWord  <- function(input) {
         if (inputSize == 1) {
                 res <- subset(bigrams.df, word1 == inputSplit[1])$word2
                 if (length(res) == 0)
-                        res<-unigrams.df[1:3]
+                        res<-unigrams.df[1:3]$ngram
                 
         }
         else   if (inputSize == 2) {
